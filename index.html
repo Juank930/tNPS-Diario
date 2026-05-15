@@ -1178,72 +1178,49 @@ function procesarDatos(data) {
     });
 
 
-document.getElementById("btnCopiar").addEventListener("click", function () {
+document.getElementById("btnCopiar").addEventListener("click", async function () {
 
     const elemento = document.getElementById("pizarraContainer");
     const btn = document.getElementById("btnCopiar");
 
+    // ✅ verificar clipboard
     if (!navigator.clipboard) {
         alert("Clipboard no soportado");
         return;
     }
 
+    // ✅ ocultar botón para que no salga en la imagen
     btn.style.display = "none";
 
-    const clone = elemento.cloneNode(true);
+    // ✅ esperar a que charts estén listos (MUY IMPORTANTE)
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-    // ✅ convertir canvas a imagen
-    copiarCanvasCorrectamente(elemento, clone);
+    html2canvas(elemento, {
+        scale: 4, // 🔥 calidad alta (puedes usar 3 si pesa mucho)
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        logging: false
+    }).then(async (canvas) => {
 
-    const wrapper = document.createElement("div");
-    wrapper.style.position = "fixed";
-    wrapper.style.left = "-9999px";
-    wrapper.style.top = "0";
-    wrapper.style.width = elemento.offsetWidth + "px";
-    wrapper.style.height = elemento.offsetHeight + "px";
-    wrapper.style.background = "#ffffff";
+        // ✅ volver a mostrar botón
+        btn.style.display = "block";
 
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
+        canvas.toBlob(async (blob) => {
 
-    clone.querySelectorAll("*").forEach(el => {
-        
-clone.querySelectorAll("img").forEach(img => {
-    img.style.transform = "none";
-});
-
-        el.style.transform = "none";
-    });
-
-    // ✅ esperar antes de capturar
-    setTimeout(() => {
-
-        html2canvas(wrapper, {
-            scale: window.devicePixelRatio * 2,
-            backgroundColor: "#ffffff",
-            useCORS: true
-        }).then(canvas => {
-
-            btn.style.display = "block";
-
-            canvas.toBlob(async (blob) => {
-
-                try {
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ "image/png": blob })
-                    ]);
-                    alert("Imagen copiada ✅");
-                } catch {
-                    alert("Error ❌");
-                }
-
-                document.body.removeChild(wrapper);
-
-            });
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ "image/png": blob })
+                ]);
+                alert("Imagen copiada ✅");
+            } catch (error) {
+                console.error(error);
+                alert("Error ❌");
+            }
 
         });
 
-    }, 200);
+    });
 
 });
 

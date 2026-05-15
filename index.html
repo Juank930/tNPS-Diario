@@ -1195,13 +1195,19 @@ document.getElementById("btnCopiar").addEventListener("click", async function ()
     // ✅ esperar a que charts estén listos (MUY IMPORTANTE)
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    html2canvas(elemento, {
-        scale: 2, // 🔥 calidad alta (puedes usar 3 si pesa mucho)
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        allowTaint: true,
-        logging: false
-    }).then(async (canvas) => {
+
+
+html2canvas(elemento, {
+    scale: 1,
+    backgroundColor: null,
+    useCORS: true,
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: document.documentElement.scrollWidth,
+    windowHeight: document.documentElement.scrollHeight
+}).then(async (canvas) => {
+
 
         // ✅ volver a mostrar botón
         btn.style.display = "block";
@@ -1496,9 +1502,6 @@ setTimeout(() => {
 
         const porcentaje = valor;
         const color = porcentaje >= 75 ? "green" : "red";   
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * 2;
-        canvas.height = rect.height * 2;
 
         new Chart(canvas, {
             type: 'doughnut',
@@ -1682,11 +1685,6 @@ const tnps = labels.map(h => data[h]?.tnps || 0);
 
     const canvas = document.getElementById("graficoLinea");
     
-const rect = canvas.getBoundingClientRect();
-canvas.width = rect.width * 2;
-canvas.height = rect.height * 2;
-
-
     if (window.miGraficoLinea) {
         window.miGraficoLinea.destroy();
     }
@@ -1724,7 +1722,7 @@ canvas.height = rect.height * 2;
         },
 
 options: {
-    responsive: false,
+    responsive: true,
     maintainAspectRatio: false,
 
     scales: {
@@ -1910,8 +1908,17 @@ document.getElementById("copiarTNPS").addEventListener("click", function () {
         backgroundColor: "#ffffff",
         useCORS: true
     }).then(async (canvas) => {
+        // ✅ duplicar calidad SIN deformar
+const canvasAlta = document.createElement("canvas");
+canvasAlta.width = canvas.width * 2;
+canvasAlta.height = canvas.height * 2;
 
-        canvas.toBlob(async (blob) => {
+const ctx = canvasAlta.getContext("2d");
+ctx.scale(2, 2);
+ctx.drawImage(canvas, 0, 0);
+
+
+        canvasAlta.toBlob(async (blob) => {
             try {
                 await navigator.clipboard.write([
                     new ClipboardItem({ "image/png": blob })
@@ -1991,7 +1998,7 @@ const valores = labels.map(h => data[h]);
             }]
         },
         options: {
-            responsive: false,
+            responsive: true,
             maintainAspectRatio: false,
 
             plugins: {
@@ -2115,7 +2122,7 @@ document.getElementById("btnCopiarMini").addEventListener("click", function () {
     btn.style.display = "none";
 
     html2canvas(elemento, {
-        scale: 3,                 // ✅ buena calidad
+        scale: 1,                 // ✅ buena calidad
         backgroundColor: "#ffffff",
         useCORS: true
     }).then(async (canvas) => {

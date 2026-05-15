@@ -1196,7 +1196,7 @@ document.getElementById("btnCopiar").addEventListener("click", async function ()
     await new Promise(resolve => setTimeout(resolve, 300));
 
     html2canvas(elemento, {
-        scale: 4, // 🔥 calidad alta (puedes usar 3 si pesa mucho)
+        scale: 2, // 🔥 calidad alta (puedes usar 3 si pesa mucho)
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: true,
@@ -1495,7 +1495,10 @@ setTimeout(() => {
         if (!canvas) return;
 
         const porcentaje = valor;
-        const color = porcentaje >= 75 ? "green" : "red";
+        const color = porcentaje >= 75 ? "green" : "red";   
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * 2;
+        canvas.height = rect.height * 2;
 
         new Chart(canvas, {
             type: 'doughnut',
@@ -1678,6 +1681,11 @@ const tnps = labels.map(h => data[h]?.tnps || 0);
 
 
     const canvas = document.getElementById("graficoLinea");
+    
+const rect = canvas.getBoundingClientRect();
+canvas.width = rect.width * 2;
+canvas.height = rect.height * 2;
+
 
     if (window.miGraficoLinea) {
         window.miGraficoLinea.destroy();
@@ -1716,7 +1724,7 @@ const tnps = labels.map(h => data[h]?.tnps || 0);
         },
 
 options: {
-    responsive: true,
+    responsive: false,
     maintainAspectRatio: false,
 
     scales: {
@@ -1983,7 +1991,7 @@ const valores = labels.map(h => data[h]);
             }]
         },
         options: {
-            responsive: true,
+            responsive: false,
             maintainAspectRatio: false,
 
             plugins: {

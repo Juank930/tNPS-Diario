@@ -743,17 +743,13 @@
     <div id="cardsMetaTNPS"></div>
 
 </div>
-
-``
-
-        </div>
+</div>
 
         <!-- ✅ PIZARRA -->
         <div id="pizarraContainer">
             <div id="pizarraHeader">
          <span id="tituloPizarra">CANALES DIGITALES 2026</span>
-         <span id="btnCopiar" title="Copiar">👁</span>
-         </div>
+                  </div>
 
             
                 <div id="pizarraContenido">                  
@@ -1176,59 +1172,6 @@ function procesarDatos(data) {
     document.getElementById("btnActualizarTabla3").addEventListener("click", function() {
         cargarTabla3(); // 🔄 vuelve a traer datos de Google Sheets
     });
-
-
-document.getElementById("btnCopiar").addEventListener("click", async function () {
-
-    const elemento = document.getElementById("pizarraContainer");
-    const btn = document.getElementById("btnCopiar");
-
-    // ✅ verificar clipboard
-    if (!navigator.clipboard) {
-        alert("Clipboard no soportado");
-        return;
-    }
-
-    // ✅ ocultar botón para que no salga en la imagen
-    btn.style.display = "none";
-
-    // ✅ esperar a que charts estén listos (MUY IMPORTANTE)
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-
-
-html2canvas(elemento, {
-    scale: 1,
-    backgroundColor: null,
-    useCORS: true,
-    logging: false,
-    scrollX: 0,
-    scrollY: 0,
-    windowWidth: document.documentElement.scrollWidth,
-    windowHeight: document.documentElement.scrollHeight
-}).then(async (canvas) => {
-
-
-        // ✅ volver a mostrar botón
-        btn.style.display = "block";
-
-        canvas.toBlob(async (blob) => {
-
-            try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ "image/png": blob })
-                ]);
-                alert("Imagen copiada ✅");
-            } catch (error) {
-                console.error(error);
-                alert("Error ❌");
-            }
-
-        });
-
-    });
-
-});
 
 
     function generarTablaTNPS() {
@@ -2146,43 +2089,6 @@ document.getElementById("btnCopiarMini").addEventListener("click", function () {
 
 });
 
-function copiarCanvasCorrectamente(origen, destino) {
-
-    const originales = origen.querySelectorAll("canvas");
-    const clones = destino.querySelectorAll("canvas");
-
-    originales.forEach((canvasOriginal, index) => {
-
-        const canvasClone = clones[index];
-        if (!canvasClone) return;
-
-        const rect = canvasOriginal.getBoundingClientRect();
-
-        const img = document.createElement("img");
-
-        try {
-            img.src = canvasOriginal.toDataURL("image/png");
-        } catch (e) {
-            console.error("Error canvas:", e);
-        }
-
-        // ✅ CLAVE: copiar dimensiones EXACTAS
-        img.style.width = rect.width + "px";
-        img.style.height = rect.height + "px";
-
-        // ✅ CLAVE: copiar comportamiento visual
-        img.style.display = "block";
-        img.style.margin = "auto";
-
-        // ✅ CLAVE: respetar posición vertical original
-        img.style.marginTop = window.getComputedStyle(canvasOriginal).marginTop;
-
-        // ✅ evitar deformaciones
-        img.style.objectFit = "contain";
-
-        canvasClone.parentNode.replaceChild(img, canvasClone);
-    });
-}
 
     </script>
 

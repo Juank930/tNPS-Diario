@@ -1177,68 +1177,76 @@ function procesarDatos(data) {
         cargarTabla3(); // 🔄 vuelve a traer datos de Google Sheets
     });
 
-    document.getElementById("btnCopiar").addEventListener("click", function () {
 
-        const elemento = document.getElementById("pizarraContainer");
-        const btn = document.getElementById("btnCopiar");
+document.getElementById("btnCopiar").addEventListener("click", function () {
 
-        if (!navigator.clipboard) {
-            alert("Clipboard no soportado en este navegador");
-            return;
-        }
+    const elemento = document.getElementById("pizarraContainer");
+    const btn = document.getElementById("btnCopiar");
 
-        // ✅ ocultar botón
-        btn.style.display = "none";
+    if (!navigator.clipboard) {
+        alert("Clipboard no soportado");
+        return;
+    }
 
-        const ANCHO_4K = 3840;
-        const ALTO_4K = 2160;
+    btn.style.display = "none";
 
-        const scaleX = ANCHO_4K / elemento.offsetWidth;
-        const scaleY = ALTO_4K / elemento.offsetHeight;
+    const clone = elemento.cloneNode(true);
 
-        const scaleFinal = Math.max(scaleX, scaleY);
+    // ✅ convertir canvas a imagen
+    copiarCanvasCorrectamente(elemento, clone);
 
-        html2canvas(elemento, {
-            scale: scaleFinal,              // ✅ escala dinámica a 4K real
-            width: elemento.offsetWidth,
-            height: elemento.offsetHeight,
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "-9999px";
+    wrapper.style.top = "0";
+    wrapper.style.width = elemento.offsetWidth + "px";
+    wrapper.style.height = elemento.offsetHeight + "px";
+    wrapper.style.background = "#ffffff";
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    clone.querySelectorAll("*").forEach(el => {
+        
+clone.querySelectorAll("img").forEach(img => {
+    img.style.transform = "none";
+});
+
+        el.style.transform = "none";
+    });
+
+    // ✅ esperar antes de capturar
+    setTimeout(() => {
+
+        html2canvas(wrapper, {
+            scale: window.devicePixelRatio * 2,
             backgroundColor: "#ffffff",
-            useCORS: true,
-            allowTaint: true,
-            imageTimeout: 0,
-            logging: false
-        }).then(async (canvas) => {
+            useCORS: true
+        }).then(canvas => {
 
             btn.style.display = "block";
 
-            // ✅ crear canvas EXACTO 4K
-            const canvasFinal = document.createElement("canvas");
-            canvasFinal.width = ANCHO_4K;
-            canvasFinal.height = ALTO_4K;
+            canvas.toBlob(async (blob) => {
 
-            const ctx = canvasFinal.getContext("2d");
-
-            // ✅ fondo blanco
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, ANCHO_4K, ALTO_4K);
-
-            // ✅ dibujar escalado perfecto
-            ctx.drawImage(canvas, 0, 0, ANCHO_4K, ALTO_4K);
-
-            canvasFinal.toBlob(async (blob) => {
                 try {
                     await navigator.clipboard.write([
                         new ClipboardItem({ "image/png": blob })
                     ]);
-                    alert("Imagen 4K copiada ✅");
-                } catch (error) {
-                    console.error("Error:", error);
-                    alert("No se pudo copiar ❌");
+                    alert("Imagen copiada ✅");
+                } catch {
+                    alert("Error ❌");
                 }
-            }, "image/png", 1.0);
+
+                document.body.removeChild(wrapper);
+
+            });
+
         });
 
-    });
+    }, 200);
+
+});
+
 
     function generarTablaTNPS() {
 
@@ -1477,9 +1485,12 @@ function procesarDatos(data) {
             contenedor.appendChild(card);
 
             // 🔥 dibujar gráfica después de renderizar
-            setTimeout(() => {
-                dibujarGauge(idCanvas, tnps);
-            }, 50);
+            
+
+setTimeout(() => {
+    dibujarGauge(idCanvas, tnps);
+}, 50);
+
         });
         cardsAdicionales.forEach(item => {
 
@@ -2142,6 +2153,45 @@ document.getElementById("btnCopiarMini").addEventListener("click", function () {
     });
 
 });
+
+function copiarCanvasCorrectamente(origen, destino) {
+
+    const originales = origen.querySelectorAll("canvas");
+    const clones = destino.querySelectorAll("canvas");
+
+    originales.forEach((canvasOriginal, index) => {
+
+        const canvasClone = clones[index];
+        if (!canvasClone) return;
+
+        const rect = canvasOriginal.getBoundingClientRect();
+
+        const img = document.createElement("img");
+
+        try {
+            img.src = canvasOriginal.toDataURL("image/png");
+        } catch (e) {
+            console.error("Error canvas:", e);
+        }
+
+        // ✅ CLAVE: copiar dimensiones EXACTAS
+        img.style.width = rect.width + "px";
+        img.style.height = rect.height + "px";
+
+        // ✅ CLAVE: copiar comportamiento visual
+        img.style.display = "block";
+        img.style.margin = "auto";
+
+        // ✅ CLAVE: respetar posición vertical original
+        img.style.marginTop = window.getComputedStyle(canvasOriginal).marginTop;
+
+        // ✅ evitar deformaciones
+        img.style.objectFit = "contain";
+
+        canvasClone.parentNode.replaceChild(img, canvasClone);
+    });
+}
+
     </script>
 
     </body>

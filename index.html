@@ -1672,9 +1672,19 @@ function generarInsightsAutomaticos() {
         ? (totalDetractores / totalEncuestas) * 100
         : 0;
 
-    if (porcentaje > 20) {
-        insights.push("Se detecta un nivel elevado de detractores.");
-    }
+    
+
+
+if (porcentaje > 20) {
+
+    insights.push("Se evidencia una incidencia relevante de detractores que impacta el indicador.");
+
+} else {
+
+    insights.push("El nivel de detractores se mantiene controlado.");
+
+}
+
 
     // 📊 volumen bajo
     if (totalEncuestas > 0 && totalEncuestas < 50) {
@@ -1692,9 +1702,24 @@ function generarInsightsAutomaticos() {
         }
     });
 
-    if (peorTramo) {
-        insights.push(`El tramo más afectado es ${peorTramo}.`);
-    }
+if (peorTramo) {
+
+    const opcionesHora = [
+
+        `El tramo de ${peorTramo} registra el punto más bajo del indicador con ${peorValor.toFixed(2)} de tNPS.`,
+
+        `Se identifica el horario de ${peorTramo} como el más crítico, alcanzando un tNPS de ${peorValor.toFixed(2)}.`,
+
+        `Durante el tramo de ${peorTramo}, el indicador presenta su nivel más bajo con ${peorValor.toFixed(2)} tNPS.`,
+
+        `El comportamiento más bajo del día se registra a las ${peorTramo}, con un tNPS de ${peorValor.toFixed(2)}.`
+
+    ];
+
+    const textoHora = opcionesHora[Math.floor(Math.random() * opcionesHora.length)];
+
+    insights.push(textoHora);
+}
 
     return insights;
 }
@@ -1710,9 +1735,6 @@ let labels = ["10:00", "14:00", "21:00"];
 
 // ✅ FILTRAR SOLO LOS QUE TIENEN DATOS
 labels = labels.filter(h => data[h] && data[h].total > 0);
-
-
-
 
 const detractores = labels.map(h => data[h]?.detractores || 0);
 const promotores = labels.map(h => data[h]?.promotores || 0);
@@ -2239,13 +2261,18 @@ let horaCriticaTexto = peorHora
 
         let impactoTexto = "";
 
-        if (totalEncuestas > 0) {
-            const porcentaje = (totalDetractores / totalEncuestas) * 100;
+// ✅ usar tNPS real (lo que tú quieres)
+if (tnpsDia < 75) {
 
-            impactoTexto = porcentaje > 20
-                ? "Se observa una alta incidencia de detractores."
-                : "El nivel de detractores se mantiene controlado.";
-        }
+    impactoTexto = "Se evidencia una incidencia relevante de detractores que impacta el indicador.";
+
+} else {
+
+    impactoTexto = "El nivel de detractores se mantiene controlado.";
+
+}
+
+  
 
         let estado = "";
 
@@ -2264,7 +2291,60 @@ let horaCriticaTexto = peorHora
 
         mensaje += `tNPS del día: ${tnpsDia.toFixed(2)}% | Acumulado del mes: ${tnpsMes.toFixed(2)}%\n\n`;
 
-        mensaje += `Encuestas: ${resumen.total} | Promotores: ${resumen.promotores} | Detractores: ${resumen.detractores}\n\n`;
+        // ✅ calcular porcentaje de detractores
+let porcentajeDetractores = 0;
+
+if (resumen.total > 0) {
+    porcentajeDetractores = (resumen.detractores / resumen.total) * 100;
+}
+
+// ✅ calcular promotores necesarios del equipo
+const listaSupervisores = [
+    "Erika Martinez",
+    "Jaime Flores",
+    "Erick Morales",
+    "Rodrigo Gomez",
+    "Gerardo Leiva"
+];
+
+let promotoresNecesariosEquipo = 0;
+
+listaSupervisores.forEach(nombre => {
+    promotoresNecesariosEquipo += calcularPromotoresMeta(nombre);
+});
+
+// ✅ opciones dinámicas
+let opciones = [];
+
+if (tnpsDia < 75 && promotoresNecesariosEquipo > 0) {
+
+    opciones = [
+
+        `Actualmente contamos con un ${porcentajeDetractores.toFixed(1)}% de detractores; como equipo, necesitamos ${promotoresNecesariosEquipo} promotores adicionales para alcanzar la meta del día.`,
+
+        `El ${porcentajeDetractores.toFixed(1)}% de las encuestas corresponden a detractores; para lograr el objetivo de tNPS 75, se requieren ${promotoresNecesariosEquipo} promotores adicionales.`,
+
+        `Se registra un ${porcentajeDetractores.toFixed(1)}% de detractores en el día; para llegar a la meta, el equipo necesita generar ${promotoresNecesariosEquipo} promotores adicionales.`
+
+    ];
+
+} else {
+
+    opciones = [
+
+        `El nivel de detractores se mantiene en ${porcentajeDetractores.toFixed(1)}%, con el indicador dentro de meta.`,
+
+        `Se observa un comportamiento favorable con ${porcentajeDetractores.toFixed(1)}% de detractores en la operación.`,
+
+        `El indicador se mantiene controlado, registrando ${porcentajeDetractores.toFixed(1)}% de detractores.`
+
+    ];
+}
+
+// ✅ elegir uno aleatorio
+const mensajeDinamico = opciones[Math.floor(Math.random() * opciones.length)];
+
+mensaje += mensajeDinamico + "\n\n";
 
         mensaje += `📊 Análisis:\n`;
 
@@ -2368,7 +2448,6 @@ function generarInsightAdicional() {
     const porSupervisor = metricasGlobales.porSupervisor || {};
     const porHora = metricasGlobales.porHora || {};
 
-    // 🔹 supervisor con menos encuestas
     let menorSupervisor = null;
     let menorCantidad = Infinity;
 
@@ -2379,7 +2458,6 @@ function generarInsightAdicional() {
         }
     });
 
-    // 🔹 hora con más detractores
     let peorHora = null;
     let maxDetractores = 0;
 
@@ -2392,17 +2470,103 @@ function generarInsightAdicional() {
 
     let texto = "";
 
-    if (menorSupervisor) {
-        texto += `Durante el día hemos contado con menor cantidad de encuestas por parte de ${menorSupervisor} con total de ${menorCantidad} encuestas.\n`;
+    // ✅ obtener última hora con datos
+    let ultimaHora = null;
+
+    Object.keys(porHora).forEach(h => {
+        if (porHora[h].total > 0) {
+            if (!ultimaHora || h > ultimaHora) {
+                ultimaHora = h;
+            }
+        }
+    });
+
+    // 🔹 detectar supervisores sin encuestas
+    const listaSupervisores = [
+        "Erika Martinez",
+        "Jaime Flores",
+        "Erick Morales",
+        "Rodrigo Gomez",
+        "Gerardo Leiva"
+    ];
+
+    let sinEncuestas = [];
+
+    listaSupervisores.forEach(nombre => {
+
+        let total = 0;
+
+        datosGlobales.forEach(r => {
+            if (r.supervisor === nombre) total++;
+        });
+
+        if (total === 0) {
+            sinEncuestas.push(nombre);
+        }
+
+    });
+
+    // ✅ PRIORIDAD: si hay supervisores sin encuestas, ellos son el menor volumen
+    if (sinEncuestas.length > 0) {
+        menorSupervisor = sinEncuestas[0];
+        menorCantidad = 0;
     }
 
-    if (peorHora) {
-        texto += `Se identifica la hora ${peorHora} con mayor número de detractores a nivel general (${maxDetractores}).`;
+    // ✅ texto adaptado (sin 0 interacciones)
+ 
+let cantidadTexto = menorCantidad === 0
+    ? "(0)"
+    : `(${menorCantidad})`;
+
+
+    let opcionesInsight = [];
+
+    // ✅ construir mensaje principal
+    if (menorSupervisor && peorHora) {
+
+        opcionesInsight = [
+
+            `Durante el día, ${menorSupervisor} registra el menor volumen de encuestas ${cantidadTexto} al corte de las ${ultimaHora}, mientras que la mayor concentración de detractores se presenta a las ${peorHora} (${maxDetractores}).`,
+
+            `Se observa que ${menorSupervisor} presenta el menor cantidad de encuestas ${cantidadTexto} hasta las ${ultimaHora}. Por otro lado, el punto crítico de detractores se ubica a las ${peorHora} con un total de ${maxDetractores}.`,
+
+            `Al cierre parcial de las ${ultimaHora}, ${menorSupervisor} mantiene la menor cantidad de encuestas ${cantidadTexto}, mientras que la hora ${peorHora} concentra la mayor cantidad de detractores (${maxDetractores}).`,
+
+            `El menor flujo de encuestas corresponde a ${menorSupervisor} con ${cantidadTexto} al corte de las ${ultimaHora}; adicionalmente, la hora ${peorHora} presenta la mayor incidencia de detractores (${maxDetractores}).`
+
+        ];
+
+    } else if (menorSupervisor) {
+
+        opcionesInsight = [
+            `${menorSupervisor} presenta el menor volumen de encuestas (${cantidadTexto}) al corte actual.`,
+            `Se observa bajo flujo de encuestas en ${menorSupervisor} con ${cantidadTexto}.`,
+            `${menorSupervisor} registra la menor cantidad de encuestas con ${cantidadTexto}.`,
+            `El menor nivel de encuestas se concentra en ${menorSupervisor} (${cantidadTexto}).`
+        ];
+
+    } else if (peorHora) {
+
+        opcionesInsight = [
+            `La mayor incidencia de detractores se identifica a las ${peorHora} con ${maxDetractores} casos.`,
+            `Se concentra un mayor número de detractores a las ${peorHora} (${maxDetractores}).`,
+            `El tramo más crítico del día se registra a las ${peorHora} con ${maxDetractores} detractores.`,
+            `Se identifica la hora ${peorHora} como el punto con mayor afectación de detractores (${maxDetractores}).`
+        ];
+    }
+
+    // ✅ elegir aleatorio
+    const insightFinal = opcionesInsight[Math.floor(Math.random() * opcionesInsight.length)];
+
+    texto += insightFinal + "\n";
+
+    // ✅ SOLO agregar esta línea si hay más de 1 sin encuestas
+    if (sinEncuestas.length > 1) {
+        texto += `Adicionalmente, no se registran encuestas para: ${sinEncuestas.slice(1).join(", ")}.\n`;
     }
 
     return texto;
 }
-
 
 document.getElementById("btnGenerarMensaje").addEventListener("click", function () {
 
@@ -2426,6 +2590,24 @@ let mensaje = generarMensajeDinamico();
 
 // ✅ 🔥 ESTA ES LA LÍNEA QUE TE FALTABA
 mensaje += "\n\n" + generarInsightAdicional();
+// ✅ textos finales dinámicos
+const opcionesFinales = [
+
+    "Adicional, compartimos el detalle de resultados actuales por asesor 👇",
+
+    "A continuación, se presenta el comportamiento actual por asesor 👇",
+
+    "Compartimos a continuación el desglose actualizado de desempeño por asesor 👇",
+
+    "Se adjunta el detalle de resultados actuales gestionados por asesor 👇"
+
+];
+
+// ✅ elegir uno aleatorio
+const textoFinal = opcionesFinales[Math.floor(Math.random() * opcionesFinales.length)];
+
+mensaje += "\n" + textoFinal;
+``
 
 
         textarea.value = mensaje;

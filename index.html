@@ -602,6 +602,8 @@
 
     </style>
     </head>
+
+    <body>
     
     <div id="modalLicencias" class="modal">
         
@@ -642,7 +644,25 @@
         </div>
     </div>
 
-    <body>
+    <div id="modalMensaje" class="modal">
+    <div class="modal-contenido">
+
+        <span id="cerrarModalMensaje" class="cerrar">✖ Cerrar</span>
+
+        <h3>Mensaje WhatsApp</h3>
+
+        <div id="loadingMensaje" style="display:none; font-weight:bold; text-align:center;">
+    ⏳ Generando mensaje...
+</div>
+
+<textarea id="textoMensaje" style="width:100%; height:230px;"></textarea>
+
+        <br><br>
+
+        <button id="copiarMensaje" class="btn-licencias">📋 Copiar</button>
+
+    </div>
+</div>
 
         <div id="notaMovible">
 
@@ -674,6 +694,11 @@
     <span id="nombreArchivo"></span>
     <button id="btnLicencias" class="btn-licencias">Licencias</button>
     <button id="btnTNPS" class="btn-licencias">tNPS Asesores</button>
+    
+    <button id="btnGenerarMensaje" class="btn-azul">
+    ✉️ Generar mensaje
+    </button>
+
 
     <br><br>
 
@@ -786,6 +811,7 @@
     <script>
     let supervisoresSeleccionados = [];
     let datosGlobales = [];
+    let metricasGlobales = {};
     let mapaLicencias = {};
     let licenciasCargadas = false;
     const COLOR_VERDE = "#008000";
@@ -919,6 +945,7 @@ function procesarDatos(data) {
     generarCardsAcumulados();
     generarCardsTNPS();
     generarCardsMetaTNPS();
+    calcularMetricasGlobales();
 
     
     requestAnimationFrame(() => {
@@ -1605,6 +1632,73 @@ function obtenerDatosGraficoLinea() {
     return resultado;
 }
 
+
+function generarInsightsAutomaticos() {
+
+    const data = obtenerDatosGraficoLinea();
+
+    let insights = [];
+
+    const rangos = Object.keys(data);
+
+    // 📉 detectar caída o subida
+    let valores = rangos.map(r => data[r].tnps);
+
+    if (valores.length >= 2) {
+
+        if (valores[valores.length - 1] < valores[valores.length - 2]) {
+            insights.push("Se observa una caída en el tNPS en el último tramo del día.");
+        }
+
+        if (valores[0] > valores[valores.length - 1]) {
+            insights.push("El tNPS ha disminuido respecto al inicio.");
+        }
+
+        if (valores[valores.length - 1] > valores[0]) {
+            insights.push("Se evidencia recuperación del indicador.");
+        }
+    }
+
+    // 🔴 detractores altos
+    let totalDetractores = 0;
+    let totalEncuestas = 0;
+
+    rangos.forEach(r => {
+        totalDetractores += data[r].detractores;
+        totalEncuestas += data[r].total;
+    });
+
+    let porcentaje = totalEncuestas > 0
+        ? (totalDetractores / totalEncuestas) * 100
+        : 0;
+
+    if (porcentaje > 20) {
+        insights.push("Se detecta un nivel elevado de detractores.");
+    }
+
+    // 📊 volumen bajo
+    if (totalEncuestas > 0 && totalEncuestas < 50) {
+        insights.push("El volumen de encuestas es bajo.");
+    }
+
+    // 🕒 tramo más crítico
+    let peorTramo = null;
+    let peorValor = 999;
+
+    rangos.forEach(r => {
+        if (data[r].total > 0 && data[r].tnps < peorValor) {
+            peorValor = data[r].tnps;
+            peorTramo = r;
+        }
+    });
+
+    if (peorTramo) {
+        insights.push(`El tramo más afectado es ${peorTramo}.`);
+    }
+
+    return insights;
+}
+
 function generarGraficoLinea() {
 
     const data = obtenerDatosGraficoLinea(); // ✅ CLAVE
@@ -2089,6 +2183,281 @@ document.getElementById("btnCopiarMini").addEventListener("click", function () {
 
 });
 
+
+function generarMensajeDinamico() {
+
+    try {
+
+        const tnpsDia = calcularTNPSGlobal();
+        const tnpsMes = obtenerTNPSMes();
+        const resumen = obtenerResumenGeneral();
+
+        const porHora = metricasGlobales.porHora || {};
+        const porSupervisor = metricasGlobales.porSupervisor || {};
+
+        const supervisores = [
+            "Erika Martinez",
+            "Jaime Flores",
+            "Erick Morales",
+            "Rodrigo Gomez",
+            "Gerardo Leiva"
+        ];
+
+        const horaActual = new Date().getHours();
+        const saludo = horaActual < 12 ? "Buenos días."
+                    : horaActual < 18 ? "Buenas tardes."
+                    : "Buenas noches.";
+
+        function random(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        let peorHora = null;
+        let peorValor = 999;
+
+        Object.entries(porHora).forEach(([hora, d]) => {
+            if (d && d.total > 0 && d.tnps < peorValor) {
+                peorValor = d.tnps;
+                peorHora = hora;
+            }
+        });
+
+        
+let horaCriticaTexto = peorHora 
+    ? `El tramo de ${peorHora} presenta el punto más bajo del indicador con ${peorValor.toFixed(2)} tNPS durante esa hora.` 
+    : "";
+
+
+        let totalDetractores = 0;
+        let totalEncuestas = 0;
+
+        Object.values(porHora).forEach(d => {
+            if (!d) return;
+            totalDetractores += d.detractores || 0;
+            totalEncuestas += d.total || 0;
+        });
+
+        let impactoTexto = "";
+
+        if (totalEncuestas > 0) {
+            const porcentaje = (totalDetractores / totalEncuestas) * 100;
+
+            impactoTexto = porcentaje > 20
+                ? "Se observa una alta incidencia de detractores."
+                : "El nivel de detractores se mantiene controlado.";
+        }
+
+        let estado = "";
+
+        if (tnpsDia >= 80) {
+            estado = "Buen desempeño general.";
+        } else if (tnpsDia >= 75) {
+            estado = "Resultado en control.";
+        } else {
+            estado = "Resultado por debajo de meta.";
+        }
+
+        let mensaje = `${saludo}\n\n`;
+
+        mensaje += `🔔 Actualización tNPS\n\n`;
+        mensaje += `${estado}\n\n`;
+
+        mensaje += `tNPS del día: ${tnpsDia.toFixed(2)}% | Acumulado del mes: ${tnpsMes.toFixed(2)}%\n\n`;
+
+        mensaje += `Encuestas: ${resumen.total} | Promotores: ${resumen.promotores} | Detractores: ${resumen.detractores}\n\n`;
+
+        mensaje += `📊 Análisis:\n`;
+
+        if (impactoTexto) mensaje += `- ${impactoTexto}\n`;
+        if (horaCriticaTexto) mensaje += `- ${horaCriticaTexto}\n`;
+
+        mensaje += "\n";
+
+        let criticos = [];
+
+        supervisores.forEach(nombre => {
+            let faltantes = calcularPromotoresMeta(nombre);
+            if (!isNaN(faltantes) && faltantes > 0) {
+                criticos.push({ nombre, faltantes });
+            }
+        });
+
+        if (criticos.length > 0) {
+
+            mensaje += `Promotores necesarios:\n\n`;
+
+            criticos.forEach(s => {
+                if (s.nombre) {
+                    mensaje += `@${s.nombre.split(" ")[0]}: ${s.faltantes}\n`;
+                }
+            });
+
+            mensaje += "\n";
+        }
+
+        mensaje += "📌 Monitoreando indicador.";
+
+        return mensaje;
+
+    } catch (error) {
+
+        console.error("ERROR MENSAJE:", error);
+
+        return "❌ Error al generar mensaje. Revisa consola (F12).";
+    }
+}
+
+
+
+function calcularMetricasGlobales() {
+
+    let porHora = {};
+    let porSupervisor = {};
+
+    datosGlobales.forEach(r => {
+
+        // 🔹 POR HORA
+        if (r.hora) {
+
+            let key = r.hora.padStart(2, "0") + ":00";
+
+            if (!porHora[key]) {
+                porHora[key] = {
+                    promotores: 0,
+                    detractores: 0,
+                    total: 0
+                };
+            }
+
+            if (r.tipo === "Promotor") porHora[key].promotores++;
+            if (r.tipo === "Detractor") porHora[key].detractores++;
+
+            porHora[key].total++;
+        }
+
+        // 🔹 POR SUPERVISOR
+        if (r.supervisor) {
+
+            if (!porSupervisor[r.supervisor]) {
+                porSupervisor[r.supervisor] = 0;
+            }
+
+            porSupervisor[r.supervisor]++;
+        }
+    });
+
+    // ✅ calcular tnps por hora
+    Object.keys(porHora).forEach(h => {
+        let d = porHora[h];
+
+        d.tnps = d.total > 0
+            ? ((d.promotores - d.detractores) / d.total) * 100
+            : 0;
+    });
+
+    metricasGlobales = {
+        porHora,
+        porSupervisor
+    };
+
+    console.log("✅ Métricas listas:", metricasGlobales);
+}
+
+function generarInsightAdicional() {
+
+    const porSupervisor = metricasGlobales.porSupervisor || {};
+    const porHora = metricasGlobales.porHora || {};
+
+    // 🔹 supervisor con menos encuestas
+    let menorSupervisor = null;
+    let menorCantidad = Infinity;
+
+    Object.entries(porSupervisor).forEach(([sup, total]) => {
+        if (total < menorCantidad) {
+            menorCantidad = total;
+            menorSupervisor = sup;
+        }
+    });
+
+    // 🔹 hora con más detractores
+    let peorHora = null;
+    let maxDetractores = 0;
+
+    Object.entries(porHora).forEach(([hora, d]) => {
+        if (d.detractores > maxDetractores) {
+            maxDetractores = d.detractores;
+            peorHora = hora;
+        }
+    });
+
+    let texto = "";
+
+    if (menorSupervisor) {
+        texto += `Durante el día hemos contado con menor cantidad de encuestas por parte de ${menorSupervisor} con total de ${menorCantidad} encuestas.\n`;
+    }
+
+    if (peorHora) {
+        texto += `Se identifica la hora ${peorHora} con mayor número de detractores a nivel general (${maxDetractores}).`;
+    }
+
+    return texto;
+}
+
+
+document.getElementById("btnGenerarMensaje").addEventListener("click", function () {
+
+    const modal = document.getElementById("modalMensaje");
+    const textarea = document.getElementById("textoMensaje");
+    const loading = document.getElementById("loadingMensaje");
+
+    // mostrar modal
+    modal.style.display = "block";
+
+    // limpiar texto
+    textarea.value = "";
+
+    // mostrar loading
+    loading.style.display = "block";
+
+    setTimeout(() => {
+
+        
+let mensaje = generarMensajeDinamico();
+
+// ✅ 🔥 ESTA ES LA LÍNEA QUE TE FALTABA
+mensaje += "\n\n" + generarInsightAdicional();
+
+
+        textarea.value = mensaje;
+
+        loading.style.display = "none";
+
+    }, 100);
+});
+
+// ✅ BOTÓN CERRAR MODAL MENSAJE
+document.getElementById("cerrarModalMensaje").onclick = () => {
+    document.getElementById("modalMensaje").style.display = "none";
+};
+
+document.getElementById("copiarMensaje").addEventListener("click", function () {
+
+    const textarea = document.getElementById("textoMensaje");
+
+    if (!textarea.value) {
+        alert("No hay mensaje para copiar ❌");
+        return;
+    }
+
+    navigator.clipboard.writeText(textarea.value)
+        .then(() => {
+            alert("Mensaje copiado ✅");
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error al copiar ❌");
+        });
+});
 
     </script>
 

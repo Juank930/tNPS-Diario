@@ -599,6 +599,17 @@
     transform: scale(1.02);
     transition: 0.2s;
 }
+#fechaInline {
+    font-size: 18px;
+    margin-left: 15px;
+    color: #0396a6;
+    font-weight: normal;
+}
+
+#pizarraContainer {
+    margin-left: 40px; /* 🔥 ajusta este valor */
+}
+
 
     </style>
     </head>
@@ -737,16 +748,14 @@
         <div class="tabla3-wrapper">
             <h3 id="tituloTabla3">Promedios acumulados</h3>
 
-            <button id="btnActualizarTabla3" class="btn-licencias" style="margin-bottom:5px;">
-                🔄
-            </button>
-            
-            <a href="https://docs.google.com/spreadsheets/d/1e-QIR7gv9mynoZXg03J8Wi083UUbuvmKPAZVsnMtuFQ/edit?gid=0#gid=0" target="_blank">
-            <button id="btnLinkTabla3" class="btn-licencias" style="margin-bottom:5px;">
-            🔗
-            </button>
-            </a>
+             <button id="btnActualizarTabla3" class="btn-licencias" style="margin-bottom:5px;">
+    🔄
+</button>
 
+<button id="btnGuardarTabla3" class="btn-licencias" style="margin-bottom:5px;">
+    💾
+</button>
+            
 
             <div class="contenedor-tabla">
                 <table id="tabla3">
@@ -773,7 +782,12 @@
         <!-- ✅ PIZARRA -->
         <div id="pizarraContainer">
             <div id="pizarraHeader">
-         <span id="tituloPizarra">CANALES DIGITALES 2026</span>
+         
+<span id="tituloPizarra">
+    CANALES DIGITALES 2026 
+    <span id="fechaInline"></span>
+</span>
+
                   </div>
 
             
@@ -946,6 +960,7 @@ function procesarDatos(data) {
     generarCardsTNPS();
     generarCardsMetaTNPS();
     calcularMetricasGlobales();
+    generarCardFecha();
 
     
     requestAnimationFrame(() => {
@@ -998,6 +1013,10 @@ function procesarDatos(data) {
     
     const urlLicencias = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQRcU_5O6yTR9k9TqkK7bvKOm9ujS2-64f-WvCSQIziijtqNphg8yVJkUsDdZR3rOCxw6yYU6HjdrRg/pub?output=csv";
     const urlTabla3 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOTpAwD_MQDzqLse2GIcXhNuUtjYnuLVaCH5Wr7nPy4miJ2tXUTm4U6Q2_JFr4czCjDXOTTQNUvRjO/pub?output=csv";
+    const BIN_ID = "6a0a039cadc21f119ab47e21";
+    const API_KEY = "$2a$10$q61RRXXWGn0q.8C4EwKUj.tzkVQzVVl.hTXm3qo7n0H8CrOVpnZHa";
+    const URL_BIN = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+    const URL_BIN_PUT = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
     const modal = document.getElementById("modalLicencias");
     const modalTNPS = document.getElementById("modalTNPS");
@@ -1036,45 +1055,6 @@ function procesarDatos(data) {
     };
 
 
-    function cargarLicencias(callback = null) {
-        fetch(urlLicencias)
-            .then(res => res.text())
-            .then(csv => {
-                const filas = csv.split("\n").map(f => f.split(","));
-
-                mapaLicencias = {};
-
-                const encabezados = filas[0].map(h => h.trim().toLowerCase());
-
-                const indexOperador = encabezados.indexOf("operador");
-                const indexSupervisor = encabezados.indexOf("supervisor");
-                const indexSite = encabezados.indexOf("sitio");
-
-                for (let i = 1; i < filas.length; i++) {
-                    const fila = filas[i];
-
-                    const operador = fila[indexOperador]
-        ?.toLowerCase()
-        .trim()
-        .replace(/\s+/g, "");
-
-                    if (operador) {
-                        mapaLicencias[operador.toLowerCase()] = {
-                            supervisor: fila[indexSupervisor] || "",
-                            site: fila[indexSite] || ""
-                        };
-                    }
-                }
-
-                licenciasCargadas = true;
-
-                // ✅ sigue mostrando la tabla visual
-                renderTablaLicencias(filas);
-
-                // ✅ ejecuta callback si existe (para cruzar datos)
-                if (callback) callback();
-            });
-    }
     function renderTablaLicencias(filas) {
         
         const thead = document.querySelector("#tablaLicencias thead");
@@ -1097,41 +1077,36 @@ function procesarDatos(data) {
         });
     }
 
-    function cargarTabla3() {
-        fetch(urlTabla3 + "&t=" + new Date().getTime())
-            .then(res => res.text())
-            .then(csv => {
-                const filas = csv.split("\n").map(f => f.split(","));
+function cargarTabla3() {
 
-                const thead = document.querySelector("#tabla3 thead");
-                const tbody = document.querySelector("#tabla3 tbody");
+    fetch(URL_BIN, {
+        headers: {
+            "X-Master-Key": API_KEY
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
 
-                thead.innerHTML = "";
-                tbody.innerHTML = "";
+        console.log("DATA REAL:", data);
 
-                filas.forEach((fila, index) => {
-                    let tr = document.createElement("tr");
+        let json = data.record?.record || data.record || [];
 
-                    fila.forEach(col => {
-                        let celda = document.createElement(index === 0 ? "th" : "td");
-                        celda.textContent = col;
-                        tr.appendChild(celda);
-                    });
+        if (!Array.isArray(json)) {
+            json = [];
+        }
 
-                    if (index === 0) {
-                        thead.appendChild(tr);
-                    } else {
-                        tbody.appendChild(tr);
-                    }
-                });
+        renderTabla3(json);
 
-                // ✅ 🔥 ESTA LÍNEA ES LA CLAVE
-                generarCardsAcumulados();
-                generarCardsTNPS(); // ✅ AQUÍ ES DONDE DEBE ESTAR
-                      
+        generarCardsAcumulados();
+        generarCardsTNPS();
 
-            });
-    }
+    })
+    .catch(err => {
+        console.error("Error JSONBin:", err);
+        renderTabla3([]);
+    });
+}
+
 
 
     function llenarFiltroSupervisor() {
@@ -1677,7 +1652,7 @@ function generarInsightsAutomaticos() {
 
 if (porcentaje > 20) {
 
-    insights.push("Se evidencia una incidencia relevante de detractores que impacta el indicador.");
+    insights.push("Se observa una incidencia relevante de detractores que impacta el indicador.");
 
 } else {
 
@@ -2264,7 +2239,7 @@ let horaCriticaTexto = peorHora
 // ✅ usar tNPS real (lo que tú quieres)
 if (tnpsDia < 75) {
 
-    impactoTexto = "Se evidencia una incidencia relevante de detractores que impacta el indicador.";
+    impactoTexto = "Se observa una incidencia relevante de detractores que impacta durante el día.";
 
 } else {
 
@@ -2350,6 +2325,7 @@ mensaje += mensajeDinamico + "\n\n";
 
         if (impactoTexto) mensaje += `- ${impactoTexto}\n`;
         if (horaCriticaTexto) mensaje += `- ${horaCriticaTexto}\n`;
+        mensaje += obtenerTextoPeorHora();
 
         mensaje += "\n";
 
@@ -2522,21 +2498,21 @@ let cantidadTexto = menorCantidad === 0
     let opcionesInsight = [];
 
     // ✅ construir mensaje principal
-    if (menorSupervisor && peorHora) {
+if (menorSupervisor) {
 
-        opcionesInsight = [
+    opcionesInsight = [
 
-            `Durante el día, ${menorSupervisor} registra el menor volumen de encuestas ${cantidadTexto} al corte de las ${ultimaHora}, mientras que la mayor concentración de detractores se presenta a las ${peorHora} (${maxDetractores}).`,
+        `Durante el día, ${menorSupervisor} registra el menor volumen de encuestas ${cantidadTexto} al corte de las ${ultimaHora}.`,
 
-            `Se observa que ${menorSupervisor} presenta el menor cantidad de encuestas ${cantidadTexto} hasta las ${ultimaHora}. Por otro lado, el punto crítico de detractores se ubica a las ${peorHora} con un total de ${maxDetractores}.`,
+        `Se observa que ${menorSupervisor} presenta el menor cantidad de encuestas ${cantidadTexto} hasta las ${ultimaHora}.`,
 
-            `Al cierre parcial de las ${ultimaHora}, ${menorSupervisor} mantiene la menor cantidad de encuestas ${cantidadTexto}, mientras que la hora ${peorHora} concentra la mayor cantidad de detractores (${maxDetractores}).`,
+        `Al cierre parcial de las ${ultimaHora}, ${menorSupervisor} mantiene la menor cantidad de encuestas ${cantidadTexto}.`,
 
-            `El menor flujo de encuestas corresponde a ${menorSupervisor} con ${cantidadTexto} al corte de las ${ultimaHora}; adicionalmente, la hora ${peorHora} presenta la mayor incidencia de detractores (${maxDetractores}).`
+        `El menor flujo de encuestas corresponde a ${menorSupervisor} con ${cantidadTexto} al corte de las ${ultimaHora}.`
 
-        ];
+    ];
 
-    } else if (menorSupervisor) {
+} else if (menorSupervisor) {
 
         opcionesInsight = [
             `${menorSupervisor} presenta el menor volumen de encuestas (${cantidadTexto}) al corte actual.`,
@@ -2640,6 +2616,270 @@ document.getElementById("copiarMensaje").addEventListener("click", function () {
             alert("Error al copiar ❌");
         });
 });
+
+function cargarLicencias(callback = null) {
+
+    const urlExcel = "https://raw.githubusercontent.com/Juank930/tNPS-Diario/main/Licencias.xlsx";
+
+    fetch(urlExcel)
+        .then(res => res.arrayBuffer())
+        .then(data => {
+
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            mapaLicencias = {};
+
+            json.forEach(row => {
+
+                const operador = (row["Operador"] || "")
+                    .toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, "");
+
+                if (operador) {
+                    mapaLicencias[operador] = {
+                        supervisor: row["Supervisor"] || "",
+                        site: row["Sitio"] || ""
+                    };
+                }
+
+            });
+
+            licenciasCargadas = true;
+
+            renderLicenciasDesdeJSON(json);
+
+            if (callback) callback();
+
+        })
+        .catch(err => console.error("Error cargando licencias:", err));
+}
+
+
+function renderTabla3(json) {
+
+    
+    const thead = document.querySelector("#tabla3 thead");
+    const tbody = document.querySelector("#tabla3 tbody");
+
+    // ✅ 🔴 PROTECCIÓN TOTAL
+    if (!thead || !tbody) return;
+
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
+
+    if (!json || json.length === 0) {
+
+        // ✅ ✅ MOSTRAR encabezados SIEMPRE
+        let trHead = document.createElement("tr");
+        ["Comentario", "Dato"].forEach(txt => {
+            let th = document.createElement("th");
+            th.textContent = txt;
+            trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+
+        tbody.innerHTML = "<tr><td colspan='2'>⚠️ Sin datos para mostrar</td></tr>";
+
+        return;
+    }
+
+
+    let trHead = document.createElement("tr");
+
+    ["Comentario", "Dato"].forEach(txt => {
+        let th = document.createElement("th");
+        th.textContent = txt;
+        trHead.appendChild(th);
+    });
+
+    thead.appendChild(trHead);
+
+    json.forEach(row => {
+
+        let tr = document.createElement("tr");
+
+        let tdComentario = document.createElement("td");
+        tdComentario.textContent = row.comentario || "";
+
+        let tdDato = document.createElement("td");
+
+// ✅ permite editar
+tdDato.contentEditable = true;
+tdDato.textContent = row.dato ?? "";
+
+// ✅ validar números en tiempo real
+tdDato.addEventListener("input", function () {
+
+    let valor = tdDato.textContent.replace(",", ".");
+
+    if (isNaN(valor)) {
+        tdDato.style.background = "#ffcccc"; // rojo si es inválido
+    } else {
+        tdDato.style.background = ""; // normal si es número
+    }
+
+});
+
+
+        tr.appendChild(tdComentario);
+        tr.appendChild(tdDato);
+
+        tbody.appendChild(tr);
+    });
+}
+
+
+function guardarTabla3() {
+
+    const filas = document.querySelectorAll("#tabla3 tbody tr");
+
+    let data = [];
+
+    filas.forEach(fila => {
+
+        const comentario = fila.cells[0].textContent;
+        const dato = parseFloat(fila.cells[1].textContent) || 0;
+
+        data.push({
+            comentario: comentario,
+            dato: dato
+        });
+    });
+
+    fetch(URL_BIN_PUT, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Master-Key": API_KEY
+        },
+        body: JSON.stringify({
+            record: data   // 🔴 ESTE ES EL FIX
+        })
+    })
+    .then(() => alert("✅ Guardado correctamente"))
+    .catch(err => console.error("Error:", err));
+}
+
+
+function renderLicenciasDesdeJSON(json) {
+
+    const thead = document.querySelector("#tablaLicencias thead");
+    const tbody = document.querySelector("#tablaLicencias tbody");
+
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
+
+    if (!json.length) return;
+
+    const headers = Object.keys(json[0]);
+
+    let trHead = document.createElement("tr");
+    headers.forEach(h => {
+        let th = document.createElement("th");
+        th.textContent = h;
+        trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+
+    json.forEach(row => {
+        let tr = document.createElement("tr");
+
+        headers.forEach(h => {
+            let td = document.createElement("td");
+            td.textContent = row[h] || "";
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+function obtenerTextoPeorHora() {
+
+    const porHora = metricasGlobales.porHora || {};
+
+    let peorHora = null;
+    let maxDetractores = 0;
+
+    Object.entries(porHora).forEach(([hora, d]) => {
+        if (d.detractores > maxDetractores) {
+            maxDetractores = d.detractores;
+            peorHora = hora;
+        }
+    });
+
+    if (!peorHora) return "";
+
+    // ✅ opciones dinámicas
+    const opciones = [
+
+        `- La mayor concentración de detractores se registra a las ${peorHora} con un total de ${maxDetractores} casos.`,
+
+        `- Se identifica las ${peorHora} como el horario con mayor incidencia de detractores, alcanzando ${maxDetractores} casos.`,
+
+        `- El tramo de las ${peorHora} concentra el mayor número de detractores con ${maxDetractores} registros.`,
+
+        `- Durante las ${peorHora} se presenta el pico más alto de detractores, con un total de ${maxDetractores}.`
+
+    ];
+
+    // ✅ elegir uno aleatorio
+    return opciones[Math.floor(Math.random() * opciones.length)] + "\n";
+}
+
+function generarCardFecha() {
+
+    const titulo = document.getElementById("tituloPizarra");
+    if (!titulo) return;
+
+    if (!datosGlobales || datosGlobales.length === 0) return;
+
+    let fechaRaw = datosGlobales.find(r => r.fecha)?.fecha;
+
+    if (!fechaRaw) return;
+
+    let fecha;
+
+    // ✅ número Excel
+    if (typeof fechaRaw === "number") {
+        
+fecha = new Date((fechaRaw - 25569) * 86400 * 1000);
+
+// ✅ AJUSTE DE ZONA HORARIA
+fecha.setHours(fecha.getHours() + 6);
+
+    } else {
+        fecha = new Date(fechaRaw);
+    }
+
+    if (!fecha || isNaN(fecha)) return;
+
+    const meses = [
+        "enero","febrero","marzo","abril","mayo","junio",
+        "julio","agosto","septiembre","octubre","noviembre","diciembre"
+    ];
+
+    const dia = fecha.getDate();
+    const mes = meses[fecha.getMonth()];
+
+    // ✅ actualizar título
+    
+const spanFecha = document.getElementById("fechaInline");
+
+if (spanFecha) {
+    spanFecha.textContent = `| ${dia} de ${mes}`;
+}
+
+}
+
+document.getElementById("btnGuardarTabla3")
+    .addEventListener("click", guardarTabla3);
+
+
+    
 
     </script>
 

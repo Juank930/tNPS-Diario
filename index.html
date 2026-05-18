@@ -2734,6 +2734,9 @@ tdDato.addEventListener("input", function () {
 
 function guardarTabla3() {
 
+    // ✅ PEDIR CONTRASEÑA
+    if (!pedirClave()) return;
+
     const filas = document.querySelectorAll("#tabla3 tbody tr");
 
     let data = [];
@@ -2756,12 +2759,13 @@ function guardarTabla3() {
             "X-Master-Key": API_KEY
         },
         body: JSON.stringify({
-            record: data   // 🔴 ESTE ES EL FIX
+            record: data
         })
     })
     .then(() => alert("✅ Guardado correctamente"))
     .catch(err => console.error("Error:", err));
 }
+
 
 
 function renderLicenciasDesdeJSON(json) {
@@ -2874,6 +2878,20 @@ if (spanFecha) {
 }
 
 }
+
+function pedirClave() {
+    const claveCorrecta = "Claro$2026"; // 👈 TU CONTRASEÑA
+
+    let clave = prompt("🔐 Ingresa contraseña para modificar:");
+
+    if (clave === claveCorrecta) {
+        return true;
+    } else {
+        alert("❌ Contraseña incorrecta");
+        return false;
+    }
+}
+
 
 document.getElementById("btnGuardarTabla3")
     .addEventListener("click", guardarTabla3);

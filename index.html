@@ -2234,16 +2234,34 @@ let horaCriticaTexto = peorHora
             totalEncuestas += d.total || 0;
         });
 
-        let impactoTexto = "";
+        
+let impactoTexto = "";
 
-// ✅ usar tNPS real (lo que tú quieres)
+// 🔴 opciones negativas
+const opcionesImpacto = [
+    "Se evidencia un impacto relevante de detractores a lo largo del día.",
+    "Se registra una presencia significativa de detractores que afecta el comportamiento del indicador durante la jornada.",
+    "El desempeño del día se ve influenciado por una participación importante de detractores.",
+    "Se observa una incidencia considerable de detractores que repercute en el resultado diario.",
+    "El indicador presenta variación debido a la influencia notable de detractores durante el día."
+];
+
+// 🟢 opciones positivas
+const opcionesControl = [
+    "El nivel de detractores se mantiene controlado durante la jornada.",
+    "Se observa un comportamiento estable con detractores dentro de niveles esperados.",
+    "El indicador se mantiene balanceado, con una incidencia controlada de detractores.",
+    "Los detractores se encuentran dentro de un rango controlado en la operación.",
+    "Se mantiene estabilidad en el indicador, con nivel de detractores bajo control."
+];
+
 if (tnpsDia < 75) {
 
-    impactoTexto = "Se observa una incidencia relevante de detractores que impacta durante el día.";
+    impactoTexto = opcionesImpacto[Math.floor(Math.random() * opcionesImpacto.length)];
 
 } else {
 
-    impactoTexto = "El nivel de detractores se mantiene controlado.";
+    impactoTexto = opcionesControl[Math.floor(Math.random() * opcionesControl.length)];
 
 }
 
